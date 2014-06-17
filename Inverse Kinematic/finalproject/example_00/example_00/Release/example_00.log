@@ -1,0 +1,35 @@
+﻿Build started 6/3/2014 10:21:23 AM.
+     1>Project "C:\Users\Public\Documents\cs184\FinalProject\finalproject\example_00\example_00\example_00.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /I"glut-3.7.6-bin" /I"C:\Users\Trung\Documents\Visual Studio 2012\Projects\as0 (2)\glm-0.9.4.6" /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt example_00.cpp
+         example_00.cpp
+     1>example_00.cpp(413): warning C4805: '==' : unsafe mix of type 'boolean' and type 'bool' in operation
+     1>example_00.cpp(459): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 C:\Program Files\Microsoft Visual Studio 11.0\VC\include\stdio.h(218) : see declaration of 'fopen'
+     1>example_00.cpp(470): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 C:\Program Files\Microsoft Visual Studio 11.0\VC\include\stdio.h(237) : see declaration of 'fscanf'
+     1>example_00.cpp(478): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 C:\Program Files\Microsoft Visual Studio 11.0\VC\include\stdio.h(237) : see declaration of 'fscanf'
+     1>example_00.cpp(482): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 C:\Program Files\Microsoft Visual Studio 11.0\VC\include\stdio.h(237) : see declaration of 'fscanf'
+     1>example_00.cpp(486): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 C:\Program Files\Microsoft Visual Studio 11.0\VC\include\stdio.h(237) : see declaration of 'fscanf'
+     1>example_00.cpp(492): warning C4996: 'fscanf': This function or variable may be unsafe. Consider using fscanf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+                 C:\Program Files\Microsoft Visual Studio 11.0\VC\include\stdio.h(237) : see declaration of 'fscanf'
+     1>example_00.cpp(691): warning C4101: 'result' : unreferenced local variable
+     1>example_00.cpp(753): warning C4553: '==' : operator has no effect; did you intend '='?
+     1>example_00.cpp(756): warning C4553: '==' : operator has no effect; did you intend '='?
+       ResourceCompile:
+         C:\Program Files\Windows Kits\8.0\bin\x86\rc.exe /D _UNICODE /D UNICODE /l"0x0409" /nologo /fo"Release\example_00.res" example_00.rc 
+       Link:
+         C:\Program Files\Microsoft Visual Studio 11.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Public\Documents\cs184\FinalProject\finalproject\example_00\Release\example_00.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:"glut-3.7.6-bin" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Public\Documents\cs184\FinalProject\finalproject\example_00\Release\example_00.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Public\Documents\cs184\FinalProject\finalproject\example_00\Release\example_00.lib" /MACHINE:X86 /SAFESEH Release\example_00.res
+         Release\example_00.obj
+         Generating code
+     1>c:\users\public\documents\cs184\finalproject\finalproject\example_00\example_00\example_00.cpp(418): warning C4715: 'CCD' : not all control paths return a value
+         Finished generating code
+         example_00.vcxproj -> C:\Users\Public\Documents\cs184\FinalProject\finalproject\example_00\Release\example_00.exe
+     1>Done Building Project "C:\Users\Public\Documents\cs184\FinalProject\finalproject\example_00\example_00\example_00.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:12.16

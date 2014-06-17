@@ -1,0 +1,785 @@
+
+#include <vector>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cmath>
+#include <string.h>
+#include <stdio.h>
+#include <cstdlib>
+#include <glm\glm\glm.hpp>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/time.h>
+#endif
+
+#ifdef OSX
+#include <GLUT/glut.h>
+#include <OpenGL/glu.h>
+#else
+#include <GL/glut.h>
+#include <GL/glu.h>
+#endif
+#include <time.h>
+#include <math.h>
+
+#ifdef _WIN32
+static DWORD lastTime;
+#else
+static struct timeval lastTime;
+#endif
+
+#define PI 3.14159265
+
+
+
+std::vector< glm::vec3 > vertices;
+std::vector< glm::vec2 > uvs;
+std::vector< glm::vec3 > normals;
+
+using namespace std;
+double sqr(double x){
+	return x*x;
+}
+/* Some classes */
+class Vector{
+public:
+	float x,y,z;
+	Vector(){};
+	Vector(float x, float y, float z){
+		this->x = x;
+		this->y = y;
+		this->z = z;
+	}
+	Vector normalize() {
+		float length = sqrt(pow(this->x, 2) + pow(this->y, 2) + pow(this->z, 2));
+        float nx = this->x / length;
+        float ny = this->y / length;
+        float nz = this->z / length;
+        Vector retvect = Vector(nx, ny, nz);
+        return retvect;
+    }
+	Vector operator * (float a){
+		Vector temp;
+		temp.x = a*x;
+		temp.y = a*y;
+		temp.z = a*z;
+		return (temp);
+	}
+	Vector operator + (Vector v){
+		Vector temp;
+		temp.x = x + v.x;
+		temp.y = y + v.y;
+		temp.z = z + v.z;
+		return (temp);
+	}
+	Vector operator - (Vector v){
+		Vector temp;
+		temp.x = x - v.x;
+		temp.y = y - v.y;
+		temp.z = z - v.z;
+		return (temp);
+	}
+	float operator * (Vector v){
+		return x*v.x + y*v.y + z*v.z;
+	}
+	Vector cross(Vector nvect) {
+		float nx = -(this->y * nvect.z) + (this->z * nvect.y);
+		float ny = -(this->z * nvect.x) + (this->x * nvect.z);
+		float nz = -(this->x * nvect.y) + (this->y * nvect.x);
+		Vector retvect = Vector(nx, ny, nz);
+    return retvect;
+	}
+};
+class Point{
+public:
+	float x,y,z;
+	float h;
+	Point() {};
+	Point(float x, float y, float z){
+		this->x = x;
+		this->y = y;
+		this->z = z;
+		this->h = h;
+	}
+	Point operator * (float a){
+		Point temp;
+		temp.x = x*a;
+		temp.y = y*a;
+		temp.z = z*a;
+		return (temp);
+	}
+	Point operator + (Point p){
+		Point temp;
+		temp.x = x + p.x;
+		temp.y = y + p.y;
+		temp.z = z + p.z;
+		return (temp);
+	}
+	Point normalize() {
+		float length = sqrt(pow(this->x, 2) + pow(this->y, 2) + pow(this->z, 2));
+        float nx = this->x / length;
+        float ny = this->y / length;
+        float nz = this->z / length;
+        Point retvect = Point(nx, ny, nz);
+        return retvect;
+    }
+	Vector operator - (Point p){
+		Vector temp;
+		temp.x = x - p.x;
+		temp.y = y - p.y;
+		temp.z = z - p.z;
+		return (temp);
+	}
+	float distant(Point p){
+		return sqrt(sqr(this->x - p.x) + sqr(this->y - p.y) + sqr(this->z - p.z));
+	}
+};
+class Quaternion{
+
+public:
+	float w;
+	float x;
+	float y;
+	float z;
+	Quaternion(){
+		this->w = 0;
+		this->x = 0;
+		this->y = 0;
+		this->z = 0;
+	}
+	Quaternion(Vector p, float angle){
+		Vector n = p.normalize();
+		this->w = cosf(angle*PI/360);
+		this->x = n.x*sinf(angle*PI/360);
+		this->y = n.y*sinf(angle*PI/360);
+		this->z = n.z*sinf(angle*PI/360);
+	}
+	Quaternion( float wq, float xq, float yq, float zq){
+		this->w = wq;
+		this->x = xq;
+		this->y = yq;
+		this->z = zq;
+	}
+	Quaternion operator * (Quaternion q){
+		float wr = this->w*q.w - this->x*q.x - this->y*q.y - this->z*q.z;
+		float xr = this->w*q.x + this->x*q.w + this->y*q.z - this->z*q.y;
+		float yr = this->w*q.y - this->x*q.z + this->y*q.w + this->z*q.x;
+		float zr = this->w*q.z + this->x*q.y - this->y*q.x + this->z*q.w;
+		return Quaternion(wr,xr,yr,zr);
+	}
+	Point rotate(Point p){
+		float sw = this->w;
+		float sx = this->x;
+		float sy = this->y;
+		float sz = this->z;
+		float xr = (1 - 2*sy*sy - 2*sz*sz)*p.x + (2*sx*sy - 2*sw*sz)*p.y + (2*sx*sz + 2*sw*sy)*p.z;
+		float yr = (2*sx*sy + 2*sw*sz)*p.x + (1 - 2*sx*sx - 2*sz*sz)*p.y + (2*sy*sz + 2*sw*sx)*p.z;
+		float zr = (2*sx*sz - 2*sw*sy)*p.x + (2*sy*sz - 2*sw*sx)*p.y + (1 - 2*sx*sx - 2*sy*sy)*p.z;
+		return Point(xr,yr,zr);
+	}
+};
+class LocalBone{
+public:
+	Point p;
+	Quaternion q;
+	LocalBone(Point point, Quaternion quaternion){
+		p = point;
+		q = quaternion;
+	}
+};
+class WorldBone{
+public:
+	Point p;
+	Quaternion q;
+};
+class Vertex{
+public:
+	Point p;
+	int b;
+};
+class Quad{
+public:
+	Vertex v0;
+	Vertex v1;
+	Vertex v2;
+	Vertex v3;
+};
+/* Cyclic Coordinate Descent */
+
+// Attaching the mesh as vector<glm::vec3> into the bone and return a vector of custom Vertex object.
+vector<Vertex> boning(vector<LocalBone> localbonelist, vector<glm::vec3> vertexlist){
+	vector<WorldBone> worldbonelist;
+    WorldBone worldboneroot;
+    worldboneroot.p = localbonelist[0].q.rotate(localbonelist[0].p);
+    worldboneroot.q = localbonelist[0].q;
+    worldbonelist.insert(worldbonelist.end(), worldboneroot);
+    int numbone = localbonelist.size();
+    for (int i = 1; i < numbone; i++) {
+        WorldBone cur;
+        WorldBone pre = worldbonelist[i-1];
+        LocalBone curlocalbone = localbonelist[i];
+        cur.q = curlocalbone.q*pre.q;
+        cur.p = pre.p + cur.q.rotate(curlocalbone.p);
+        worldbonelist.insert(worldbonelist.end(),cur);
+    }
+	int numver = vertexlist.size();
+	vector<Vertex> joinedvertices;
+	for(int i = 0; i < numver; i++){
+		Vertex jv;
+		glm::vec3 curv3 = vertexlist[i];
+		jv.p = Point(curv3.x,curv3.y,curv3.z);
+		for(int j = 0; j < numbone; j++){
+			if((worldbonelist[j].p.x - curv3.x) > 0){
+				
+				if(j > 0){
+					Vector vertextobone = jv.p - worldbonelist[j - 1].p;
+					jv.p = Point(vertextobone.x,vertextobone.y,vertextobone.z);
+				}
+				jv.b = j;
+				joinedvertices.insert(joinedvertices.end(), jv);
+				break;
+			}
+		}
+	}
+	return joinedvertices;
+}
+//Generating a vector of glm::vec3 of a cylindrical shape around the bone that is not dependant of the bone
+vector<glm::vec3> meshing(){
+	vector<glm::vec3> glmvectorlist;
+	float l = 4.8;
+	float r = 0.3;
+	float ldiv = l/100.0;
+	float rdiv = 2*PI/12;
+	float jl = 0;
+	float ia = 0;
+	for(int j = 0; j < 100; j++){
+		jl = j*ldiv;
+		for(int i = 0; i < 12; i++){
+			ia = i*rdiv;
+			glm::vec3 curver;
+			curver.x = jl;
+			curver.y = (r/(jl+0.5))*sin(ia);
+			curver.z = (r/(jl+0.5))*cos(ia);
+			glmvectorlist.insert(glmvectorlist.end(), curver);
+		}
+	}
+	return glmvectorlist;
+
+}
+/*
+vector<Quad> quadding(vector<Vertex> vertexlist){
+	vector<Quad> quadlist;
+	for(int j = 0; j < 100; j++){
+		for(int i = 0; i < 12; i ++){
+			Quad quad;
+			quad.v0 = vertexlist[i + j*12];
+			quad.v1 = vertexlist[i + 1 + (j + 1)*12];
+			quad.v2 = vertexlist[i + 1 + (j + 1)*12]
+		}
+	}
+}
+*/
+//Drawing the skin base on the bones and the list of vertices (the result after bonning)
+//void skinning(vector<LocalBone> localbonelist, vector<Vertex> localvertices, vector<Vertex> localnorms) {
+void skinning(vector<LocalBone> localbonelist, vector<Vertex> localvertices) {
+    vector<WorldBone> worldbonelist;
+    WorldBone worldboneroot;
+    worldboneroot.p = localbonelist[0].q.rotate(localbonelist[0].p);
+    worldboneroot.q = localbonelist[0].q;
+    worldbonelist.insert(worldbonelist.end(), worldboneroot);
+    int numbone = localbonelist.size();
+    for (int i = 1; i < numbone; i++) {
+        WorldBone cur;
+        WorldBone pre = worldbonelist[i-1];
+        LocalBone curlocalbone = localbonelist[i];
+        cur.q = curlocalbone.q*pre.q;
+        cur.p = pre.p + cur.q.rotate(curlocalbone.p);
+        worldbonelist.insert(worldbonelist.end(),cur);
+    }
+	int numver = localvertices.size();
+	vector<Point> pointlist;
+	//vector<Point> normlist;
+	//glBegin(GL_POINTS);
+	for(int i = 0; i < numver; i++){
+		int curboneindex = localvertices[i].b;
+		Point vertex;
+		//Point norm;
+		if(localvertices[i].b > 0){
+			vertex = worldbonelist[curboneindex-1].p + worldbonelist[curboneindex].q.rotate(localvertices[i].p);
+
+			//norm = localnorms[i].p;
+			//norm = worldbonelist[curboneindex].q.rotate(localnorms[i].p);
+			//norm = norm.normalize();
+		}else{
+			//norm = localnorms[i].p;
+			vertex = worldbonelist[curboneindex].q.rotate(localvertices[i].p);
+			//norm = worldbonelist[curboneindex].q.rotate(localnorms[i].p);
+			//norm = norm.normalize();
+		}
+		pointlist.insert(pointlist.end(), vertex);
+		//normlist.insert(normlist.end(), norm);
+	}
+	glColor3f(0.9,0.7,0.5);
+	//glBegin(GL_TRIANGLE_STRIP);
+	for(int i = 0; i < numver; i+=3){
+		glBegin(GL_LINE_LOOP);
+		//glBegin(GL_TRIANGLE_STRIP);
+		
+		//glNormal3f(normlist[i].x, normlist[i].y, normlist[i].z);
+		glVertex3f(pointlist[i].x,pointlist[i].y,pointlist[i].z);
+		//glNormal3f(normlist[i+1].x, normlist[i+1].y, normlist[i+1].z);
+		glVertex3f(pointlist[i+1].x,pointlist[i+1].y,pointlist[i+1].z);
+		//glNormal3f(normlist[i+2].x, normlist[i+2].y, normlist[i+2].z);
+		glVertex3f(pointlist[i+2].x,pointlist[i+2].y,pointlist[i+2].z);
+		glEnd();
+	}
+	//glEnd();
+}
+static vector<LocalBone> thelocalbones(){
+
+	Vector unitz = Vector(0.0,0.0,1.0);
+	static LocalBone b0 = LocalBone(Point(1.5,0.0,0.0),Quaternion(unitz, 0.0));
+	static LocalBone b1 = LocalBone(Point(1.5,0.0,0.0),Quaternion(unitz, 0.0));
+	static LocalBone b2 = LocalBone(Point(1.5,0.0,0.0),Quaternion(unitz, 0.0));
+	static LocalBone b3 = LocalBone(Point(0.3,0.0,0.0),Quaternion(unitz, 0.0));
+	vector<LocalBone> localbonelist;
+	localbonelist.insert(localbonelist.begin(),b3);
+	localbonelist.insert(localbonelist.begin(),b2);
+	localbonelist.insert(localbonelist.begin(),b1);
+	localbonelist.insert(localbonelist.begin(),b0);
+	return localbonelist;
+}
+int CCD(vector<LocalBone> *bonelist, Point *target, float *minimum){
+	float max = 90;
+	float min = 0;
+	vector<WorldBone> worldbonelist;
+    WorldBone worldboneroot;
+    worldboneroot.p = (*bonelist)[0].q.rotate((*bonelist)[0].p);
+    worldboneroot.q = (*bonelist)[0].q;
+    worldbonelist.insert(worldbonelist.end(), worldboneroot);
+    int numbone = bonelist->size();
+    for(int i = 1; i < numbone; i++){
+    WorldBone cur;
+	WorldBone pre = worldbonelist[i-1];
+	LocalBone curlocalbone = (*bonelist)[i];
+	cur.q = curlocalbone.q*pre.q;
+	cur.p = pre.p + cur.q.rotate(curlocalbone.p);
+	worldbonelist.insert(worldbonelist.end(),cur);
+  }
+  boolean progress = false;
+  Point effector = worldbonelist[numbone - 1].p;
+  for( int i = numbone - 2; i >= -1 ; i--){
+		WorldBone thisbone;
+		if(i >= 0){
+			thisbone = worldbonelist[i];
+		}else{
+			thisbone.p = Point(0.0,0.0,0.0);
+			thisbone.q = Quaternion(Vector(0.0,0.0,1.0), 0);
+		}
+		Vector je;
+		Vector jt;
+		je = effector - thisbone.p;
+		jt = *target - thisbone.p;
+		float magje = sqrt(je*je);
+		float magjt = sqrt(jt*jt);
+		Vector axis = jt.cross(je);
+		float cosin;
+		float sin;
+		if(magje*magjt > 0.00001){
+			cosin = (je*jt)/(magje*magjt);
+			sin = sqrt(axis*axis)/(magje*magjt);
+		}else{
+			cosin = 1.0;
+			sin = 0.0;
+		}
+		float angle = 180*acosf(max(-1,min(1.0,cosin)))/PI;
+		if( sin < 0){
+			angle = - angle;
+		}
+		Quaternion curq = Quaternion(axis.normalize(),angle);
+		Point curtoend = Point(je.x,je.y,je.z);
+		(*bonelist)[i + 1].q = curq*(*bonelist)[i + 1].q;
+		effector = thisbone.p + curq.rotate(curtoend);
+		Vector distant = effector - *target;
+		if(sqrt(distant*distant) < *minimum){
+			return 0;
+		}
+		if(magje*abs(angle*PI/180.0) >= 0.0001){
+			progress = true;
+		}
+  }
+  if(progress == true){
+	  return 1;
+  }else if(progress == false){
+	  return 0;
+  }
+}
+void drawBones(vector<LocalBone> localbonelist){
+  vector<WorldBone> worldbonelist;
+  WorldBone worldboneroot;
+  worldboneroot.p = localbonelist[0].q.rotate(localbonelist[0].p);
+  worldboneroot.q = localbonelist[0].q;
+  worldbonelist.insert(worldbonelist.end(), worldboneroot);
+  int numbone = localbonelist.size();
+  for(int i = 1; i < numbone; i++){
+    WorldBone cur;
+	WorldBone pre = worldbonelist[i-1];
+	LocalBone curlocalbone = localbonelist[i];
+	cur.q = curlocalbone.q*(pre.q);
+	cur.p = pre.p + cur.q.rotate(curlocalbone.p);
+	worldbonelist.insert(worldbonelist.end(),cur);
+  }
+  
+  glBegin(GL_LINES);
+  glColor3f(0.0,1.0,1.0);
+  glVertex3f(0.0,0.0,0.0);
+  glVertex3f(worldbonelist[0].p.x,worldbonelist[0].p.y,worldbonelist[0].p.z);
+  glColor3f(0.0,1.0,0.0);
+  glVertex3f(worldbonelist[0].p.x,worldbonelist[0].p.y,worldbonelist[0].p.z);
+  glVertex3f(worldbonelist[1].p.x,worldbonelist[1].p.y,worldbonelist[1].p.z);
+  glColor3f(1.0,1.0,0.0);
+  glVertex3f(worldbonelist[1].p.x,worldbonelist[1].p.y,worldbonelist[1].p.z);
+  glVertex3f(worldbonelist[2].p.x,worldbonelist[2].p.y,worldbonelist[2].p.z);
+  glColor3f(0.0,1.0,1.0);
+  glVertex3f(worldbonelist[2].p.x,worldbonelist[2].p.y,worldbonelist[2].p.z);
+  glVertex3f(worldbonelist[3].p.x,worldbonelist[3].p.y,worldbonelist[3].p.z);
+  glColor3f(1.0,0.0,1.0);
+  glEnd();
+}
+
+bool loadOBJ(const char * path, std::vector < glm::vec3 > & out_vertices, std::vector < glm::vec2 > & out_uvs, std::vector < glm::vec3 > & out_normals) {
+	std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
+	std::vector<glm::vec3> temp_vertices;
+	std::vector<glm::vec2> temp_uvs;
+	std::vector<glm::vec3> temp_normals;
+	
+	// OPEN THE FILE
+	FILE * file = fopen(path, "r");
+	if( file == NULL ) {
+		printf("Impossible to open the file !\n");
+		return false;
+	}
+
+	// ITERATE THROUGH THE FILE'S CONTENTS
+	while (1) {
+		char lineHeader[128];
+
+		// read the first word of the line
+		int res = fscanf(file, "%s", lineHeader);
+
+		if (res == EOF)
+			break; // EOF = End Of File. Quit the loop.
+ 
+		// else : parse lineHeader
+		if ( strcmp( lineHeader, "v" ) == 0 ) {
+			glm::vec3 vertex;
+			fscanf(file, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z );
+			temp_vertices.push_back(vertex);
+		} else if ( strcmp( lineHeader, "vt" ) == 0 ) {
+			glm::vec2 uv;
+			fscanf(file, "%f %f\n", &uv.x, &uv.y );
+			temp_uvs.push_back(uv);
+		} else if ( strcmp( lineHeader, "vn" ) == 0 ) {
+			glm::vec3 normal;
+			fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z );
+			temp_normals.push_back(normal);
+		} else if ( strcmp( lineHeader, "f" ) == 0 ) {
+
+			// std::string vertex1, vertex2, vertex3;
+			unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
+			int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &uvIndex[0], &normalIndex[0], &vertexIndex[1], &uvIndex[1], &normalIndex[1], &vertexIndex[2], &uvIndex[2], &normalIndex[2] );
+			if (matches != 9){
+				printf("File can't be read by our simple parser : ( Try exporting with other options\n");
+				return false;
+			}
+			vertexIndices.push_back(vertexIndex[0]);
+			vertexIndices.push_back(vertexIndex[1]);
+			vertexIndices.push_back(vertexIndex[2]);
+			uvIndices.push_back(uvIndex[0]);
+			uvIndices.push_back(uvIndex[1]);
+			uvIndices.push_back(uvIndex[2]);
+			normalIndices.push_back(normalIndex[0]);
+			normalIndices.push_back(normalIndex[1]);
+			normalIndices.push_back(normalIndex[2]);
+		}
+	}
+
+	// For each vertex of each triangle
+	for( unsigned int i=0; i<vertexIndices.size(); i++ ) {
+		unsigned int vertexIndex = vertexIndices[i];
+		// cout << "hello: " << vertexIndex << endl;
+		glm::vec3 vertex = temp_vertices[ vertexIndex-1 ];
+		out_vertices.push_back(vertex);
+	}
+
+	// For each UV of each triangle
+	for( unsigned int i=0; i<uvIndices.size(); i++ ) {
+		unsigned int uvIndex = uvIndices[i];
+		glm::vec2 uv = temp_uvs[ uvIndex-1 ];
+		out_uvs.push_back(uv);
+	}
+
+	// For each normal of each triangle
+	for( unsigned int i=0; i<normalIndices.size(); i++ ) {
+		unsigned int normalIndex = normalIndices[i];
+		glm::vec3 normal = temp_normals[ normalIndex-1 ];
+		out_normals.push_back(normal);
+	}
+
+	return true;
+}
+
+
+/***************************************/
+ 
+/* Global variables */
+char title[] = "3D Shapes";
+int modelon = 0;
+int modelnum = 0;
+static float r = 1.0;
+static float h = 5.0; 
+static vector<LocalBone> localbones = thelocalbones();
+/*
+Vector unitz = Vector(0.0,0.0,1.0);
+static LocalBone b0 = LocalBone(Point(0.2,0.0,0.0),Quaternion(unitz, 0.0));
+static LocalBone b1 = LocalBone(Point(0.4,0.0,0.0),Quaternion(unitz, 0.0));
+static LocalBone b2 = LocalBone(Point(0.8,0.0,0.0),Quaternion(unitz, 0.0));
+static LocalBone b3 = LocalBone(Point(1.0,0.0,0.0),Quaternion(unitz, 0.0));
+static vector<LocalBone> localbonelist;
+localbonelist.insert(localbonelist.begin(),b3);
+localbonelist.insert(localbonelist.begin(),b2);
+localbonelist.insert(localbonelist.begin(),b1);
+localbonelist.insert(localbonelist.begin(),b0);
+*/
+/* Initialize OpenGL Graphics */
+void initGL() {
+   glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Set background color to black and opaque
+   glClearDepth(1.0f);                   // Set background depth to farthest
+   glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
+	/**
+      glEnable(GL_LIGHTING);
+      //Seting up the light component
+      glEnable(GL_LIGHT0);
+      GLfloat ambientlight0[] = {0.1,0.1,0.1,1.0};
+      GLfloat diffuselight0[] = {0.2,0.2,0.2,1.0};
+      GLfloat specularlight0[] = {0.8,0.8,0.8,1.0};
+      glLightfv(GL_LIGHT0, GL_AMBIENT,ambientlight0);
+      glLightfv(GL_LIGHT0, GL_DIFFUSE,diffuselight0);
+      glLightfv(GL_LIGHT0, GL_SPECULAR,specularlight0);
+      //Seting up the light position
+      GLfloat positionlight0[] = {50.0,50.0,50.0,1.0};
+      glLightfv(GL_LIGHT0, GL_POSITION, positionlight0);
+      //Seting up the light component
+      glEnable(GL_LIGHT1);
+      GLfloat ambientlight1[] = {0.1,0.1,0.1,1.0};
+      GLfloat diffuselight1[] = {0.2,0.2,0.2,1.0};
+      GLfloat specularlight1[] = {0.8,0.8,0.8,1.0};
+      glLightfv(GL_LIGHT1, GL_AMBIENT,ambientlight1);
+      glLightfv(GL_LIGHT1, GL_DIFFUSE,diffuselight1);
+      glLightfv(GL_LIGHT1, GL_SPECULAR,specularlight1);
+      //Seting up the light position
+      GLfloat positionlight1[] = {0.5,0.5,40,1.0};
+      glLightfv(GL_LIGHT1, GL_POSITION, positionlight1);
+      //Seting up the light component
+      glEnable(GL_LIGHT2);
+      GLfloat ambientlight2[] = {0.1,0.1,0.1,1.0};
+      GLfloat diffuselight2[] = {0.2,0.2,0.2,1.0};
+      GLfloat specularlight2[] = {0.8,0.8,0.8,1.0};
+      glLightfv(GL_LIGHT2, GL_AMBIENT,ambientlight2);
+      glLightfv(GL_LIGHT2, GL_DIFFUSE,diffuselight2);
+      glLightfv(GL_LIGHT2, GL_SPECULAR,specularlight2);
+      //Seting up the light position
+      GLfloat positionlight2[] = {0.8,0.8,0.2,1.0};
+      glLightfv(GL_LIGHT2, GL_POSITION, positionlight2);
+	  **/
+   glEnable(GL_DEPTH_TEST);   // Enable depth testing for z-culling
+   glDepthFunc(GL_LEQUAL);    // Set the type of depth-test
+   glShadeModel(GL_SMOOTH);   // Enable smooth shading
+   glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Nice perspective corrections
+}
+ 
+/* Handler for window-repaint event. Called back when the window first appears and
+   whenever the window needs to be re-painted. */
+void display() {
+
+	//----------------------- ----------------------- -----------------------
+  // This is a quick hack to add a little bit of animation.
+	
+  static float tip = -PI;
+  const  float stp = 0.01f;
+  const  float beg = -PI;
+  const  float end = PI;
+  static float xtip;
+  static float ytip;
+  tip += stp;
+  xtip = cos(tip);
+  ytip = sin(tip);
+  if (tip>end) tip = beg;
+
+  //-----------------------------------------------------------------------
+
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear color and depth buffers
+   glMatrixMode(GL_MODELVIEW);     // To operate on model-view matrix
+   // Render a color-cube consisting of 6 quads with different colors
+   glLoadIdentity();                 // Reset the model-view matrix
+   glTranslatef(0.0f, 0.0f, -15.0f);  // Move right and into the screen
+   glRotatef(90.0,0.0,0.0,1.0);
+   /**
+   GLfloat ambient[] = {0.1,0.1,0.0,1.0};
+   GLfloat diffuse[] = {0.9,0.9,0.0,1.0};
+   GLfloat specular[] = {0.5,0.5,0.0,1.0};
+   
+   glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+      glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+      glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+      glMaterialf(GL_FRONT,GL_SHININESS,128.0);
+      glLightfv(GL_LIGHT0,GL_AMBIENT, specular);
+	  **/
+   vector<LocalBone> localbonelist = localbones;
+   vector<glm::vec3> samplemesh = meshing();
+   vector<Vertex> localvertices;
+   vector<Vertex> localnorms;
+   if(modelnum == 2){
+	   glColor3f(1.0, 0.0, 1.0);
+	   if(true){
+		   for (float i = 0; i < vertices.size(); i+=3) {
+				glBegin(GL_LINE_LOOP);
+				//glBegin(GL_POLYGON);
+				glm::vec3 v0 = vertices.at(i);
+				glm::vec3 v1 = vertices.at(i + 1);
+				glm::vec3 v2 = vertices.at(i + 2);
+				glm::vec3 n0 = normals.at(i);
+				glm::vec3 n1 = normals.at(i + 1);
+				glm::vec3 n2 = normals.at(i + 2);
+				//glNormal3f(n0[0], n0[1], n0[2]);
+				glVertex3f(v0[0], v0[1], v0[2]);
+				//glNormal3f(n1[0], n1[1], n1[2]);
+				glVertex3f(v1[0], v1[1], v1[2]);
+				//glNormal3f(n2[0], n2[1], n2[2]);
+				glVertex3f(v2[0], v2[1], v2[2]);
+				glEnd();
+		   }
+	   }
+	   localvertices = boning(localbonelist,vertices);
+	   localnorms = boning(localbonelist,normals);
+   }else if(modelnum == 1){
+       if(true){
+		   int meshsize = samplemesh.size();
+		   for(int i = 0; i < meshsize; i++){
+			   glBegin(GL_POINTS);
+			   glm::vec3 curvec3 = samplemesh[i];
+			   glVertex3f(curvec3.x,curvec3.y,curvec3.z);
+			   glEnd();
+		   }
+	   }
+	   localvertices = boning(localbonelist,samplemesh);
+   }
+   for(float i = 0; i < 2*PI; i+=0.01){
+	  glColor3f(1.0,0.0,1.0);
+	  glBegin(GL_POINTS);
+	  glVertex3f(h*xtip,r*sinf(i),r*cosf(i));
+	  glEnd();
+  }
+  Point target = Point(h*xtip,r*ytip,r*xtip);
+  glColor3f(1.0f,1.0f,0.0f);
+  glBegin(GL_POINTS);
+  glVertex3f(target.x,target.y,target.z);
+  glEnd();
+  float minimum = 0.01;
+  int result;
+  int stop = 1;
+  drawBones(localbones);
+  while(stop){
+	    stop = CCD(&localbonelist,&target,&minimum);
+  }
+  drawBones(localbonelist);
+  //vector<Vertex> localvertices = meshing(localbonelist); 
+  skinning(localbonelist, localvertices);
+  glutSwapBuffers();  // Swap the front and back frame buffers (double buffering)
+}
+/* Handler for window re-size event. Called back when the window first appears and
+   whenever the window is re-sized with its new width and height */
+void reshape(GLsizei width, GLsizei height) {  // GLsizei for non-negative integer
+   // Compute aspect ratio of the new window
+   if (height == 0) height = 1;                // To prevent divide by 0
+   GLfloat aspect = (GLfloat)width / (GLfloat)height;
+ 
+   // Set the viewport to cover the new window
+   glViewport(0, 0, width, height);
+ 
+   // Set the aspect ratio of the clipping volume to match the viewport
+   glMatrixMode(GL_PROJECTION);  // To operate on the Projection matrix
+   glLoadIdentity();             // Reset
+   // Enable perspective projection with fovy, aspect, zNear and zFar
+   gluPerspective(45.0f, aspect, 0.1f, 100.0f);
+}
+ 
+//****************************************************
+// called by glut when there are no messages to handle
+//****************************************************
+void keyboard(unsigned char key, int x, int y)
+{
+
+    if (key == 'u')
+        {
+            h+=0.2;
+        }
+    if (key == 'j')
+        {
+            h-=0.2;
+        }
+    if (key == 32)
+        {
+            exit(0);
+        }
+    if (key == 'h'){
+    		r-=0.2;
+		}
+    if (key == 'k'){
+			r+=0.2;
+		}
+	if (key == '0'){
+			modelnum = 0;
+		}
+	if (key == '1'){
+			modelnum = 1;
+		}
+	if (key == '2'){
+			modelnum = 2;
+		}
+	if (key == 'q'){
+			modelon == 1;
+		}
+	if (key == 'p'){
+			modelon == 0;
+		}
+
+
+
+    glutPostRedisplay();
+}
+void myFrameMove() {
+  //nothing here for now
+#ifdef _WIN32
+  Sleep(30);                                   //give ~10ms back to OS (so as not to waste the CPU)
+#endif
+  glutPostRedisplay(); // forces glut to call the display function (myDisplay())
+}
+/* Main function: GLUT runs as a console application starting at main() */
+int main(int argc, char** argv) {
+   glutInit(&argc, argv);            // Initialize GLUT
+   glutInitDisplayMode(GLUT_DOUBLE); // Enable double buffered mode
+   glutInitWindowSize(640, 480);   // Set the window's initial width & height
+   glutInitWindowPosition(50, 50); // Position the window's initial top-left corner
+   glutCreateWindow(title);          // Create window with the given title
+   glutDisplayFunc(display);       // Register callback handler for window re-paint event
+   glutReshapeFunc(reshape);       // Register callback handler for window re-size event
+   glutKeyboardFunc(keyboard);
+   glutIdleFunc(myFrameMove);      // function to run when not handling any other task
+   bool res = loadOBJ("mesh.obj", vertices, uvs, normals);
+   initGL();                       // Our own OpenGL initialization
+   glutMainLoop();                 // Enter the infinite event-processing loop
+   return 0;
+}
